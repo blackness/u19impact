@@ -6,7 +6,6 @@ import Sidebar from './components/Sidebar'
 import './index.css'
 
 const DEFAULT_DIVISION = 'u19_men_2526'
-const DEFAULT_POOL     = 'A'
 
 export default function App() {
   const [activeDivision, setActiveDivision] = useState(
@@ -15,7 +14,7 @@ export default function App() {
   const [favoriteTeam, setFavoriteTeam] = useState(
     () => localStorage.getItem('obl_favorite_team') || 'Kingston Impact - Wallace'
   )
-  const [activePool, setActivePool]   = useState(DEFAULT_POOL)
+  const [activePool, setActivePool]   = useState('A')
   const [pools, setPools]             = useState(null)
   const [fetchedAt, setFetchedAt]     = useState(null)
   const [loading, setLoading]         = useState(true)
@@ -23,9 +22,7 @@ export default function App() {
   const [teamEvents, setTeamEvents]   = useState([])
 
   const loadDivision = useCallback(async (divisionId) => {
-    setLoading(true)
-    setError(null)
-    setPools(null)
+    setLoading(true); setError(null); setPools(null)
     try {
       const [{ pools: data, fetchedAt: ts }, oneOff, recurring] = await Promise.all([
         fetchDivision(divisionId),
@@ -35,8 +32,7 @@ export default function App() {
       setPools(data)
       setFetchedAt(ts)
       setTeamEvents([...oneOff, ...recurring])
-      const firstPool = Object.keys(data)[0] || 'A'
-      setActivePool(firstPool)
+      setActivePool(Object.keys(data)[0] || 'A')
     } catch (e) {
       setError('Could not load schedule data.')
       console.error(e)
@@ -48,71 +44,49 @@ export default function App() {
   useEffect(() => { loadDivision(activeDivision) }, [activeDivision, loadDivision])
 
   useEffect(() => {
-    const channel = subscribeToDivision(activeDivision, () => loadDivision(activeDivision))
-    return () => channel.unsubscribe()
+    const ch = subscribeToDivision(activeDivision, () => loadDivision(activeDivision))
+    return () => ch.unsubscribe()
   }, [activeDivision, loadDivision])
 
-  const switchDivision = (id) => {
-    localStorage.setItem('obl_division', id)
-    setActiveDivision(id)
-  }
+  const switchDivision = (id) => { localStorage.setItem('obl_division', id); setActiveDivision(id) }
+  const setFavorite    = (n)  => { localStorage.setItem('obl_favorite_team', n); setFavoriteTeam(n) }
 
-  const setFavorite = (teamName) => {
-    localStorage.setItem('obl_favorite_team', teamName)
-    setFavoriteTeam(teamName)
-  }
-
-  const division  = DIVISIONS.find(d => d.id === activeDivision)
-  const poolKeys  = pools ? Object.keys(pools).sort() : []
+  const division     = DIVISIONS.find(d => d.id === activeDivision)
+  const poolKeys     = pools ? Object.keys(pools).sort() : []
   const favoritePool = pools
-    ? Object.entries(pools).find(([, pd]) =>
-        pd.standings?.some(t => t.name === favoriteTeam)
-      )?.[0]
+    ? Object.entries(pools).find(([, pd]) => pd.standings?.some(t => t.name === favoriteTeam))?.[0]
     : null
 
   return (
     <div>
       <Masthead
-        division={division}
-        divisions={DIVISIONS}
-        onSwitchDivision={switchDivision}
-        pools={poolKeys}
-        activePool={activePool}
-        onSwitchPool={setActivePool}
-        fetchedAt={fetchedAt}
-        loading={loading}
-        onRefresh={() => loadDivision(activeDivision)}
+        division={division} divisions={DIVISIONS} onSwitchDivision={switchDivision}
+        pools={poolKeys} activePool={activePool} onSwitchPool={setActivePool}
+        fetchedAt={fetchedAt} loading={loading} onRefresh={() => loadDivision(activeDivision)}
       />
 
       <div style={{
-        maxWidth: 1120, margin: '0 auto', padding: '2rem 1.5rem',
-        display: 'grid', gridTemplateColumns: '1fr 300px',
-        gap: '2rem', alignItems: 'start',
+        maxWidth: 1120, margin: '0 auto', padding: '1.5rem',
+        display: 'grid',
+        gridTemplateColumns: 'minmax(0,1fr) 280px',
+        gap: '1.5rem', alignItems: 'start',
       }} className="page-wrap">
-        <main>
+        <main style={{ minWidth: 0 }}>
           {loading && <LoadingState />}
-          {error && <ErrorState message={error} onRetry={() => loadDivision(activeDivision)} />}
+          {error   && <ErrorState message={error} onRetry={() => loadDivision(activeDivision)} />}
           {!loading && !error && pools && (
             <PoolView
-              poolData={pools[activePool]}
-              poolKey={activePool}
-              favoriteTeam={favoriteTeam}
-              teamEvents={teamEvents}
-              allPools={pools}
+              poolData={pools[activePool]} poolKey={activePool}
+              favoriteTeam={favoriteTeam} teamEvents={teamEvents} allPools={pools}
             />
           )}
         </main>
-        <aside>
+        <aside className="desktop-sidebar">
           <Sidebar
-            pools={pools}
-            poolKeys={poolKeys}
-            activePool={activePool}
-            onSwitchPool={setActivePool}
-            favoriteTeam={favoriteTeam}
-            favoritePool={favoritePool}
-            onSetFavorite={setFavorite}
-            division={division}
-            teamEvents={teamEvents}
+            pools={pools} poolKeys={poolKeys} activePool={activePool}
+            onSwitchPool={setActivePool} favoriteTeam={favoriteTeam}
+            favoritePool={favoritePool} onSetFavorite={setFavorite}
+            division={division} teamEvents={teamEvents}
           />
         </aside>
       </div>
@@ -123,20 +97,18 @@ export default function App() {
 function LoadingState() {
   return (
     <div style={{ padding: '4rem 2rem', textAlign: 'center' }}>
-      <div style={{ width: 22, height: 22, border: '2px solid var(--rule)', borderTopColor: 'var(--orange)', borderRadius: '50%', animation: 'spin 0.65s linear infinite', margin: '0 auto 0.9rem' }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-      <div style={{ fontFamily: 'var(--cond)', fontSize: 14, letterSpacing: '0.08em', color: 'var(--ink-3)', textTransform: 'uppercase' }}>Loading schedule…</div>
+      <div style={{ width:22, height:22, border:'2px solid var(--rule)', borderTopColor:'var(--orange)', borderRadius:'50%', animation:'spin .65s linear infinite', margin:'0 auto .9rem' }} />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <div style={{ fontFamily:'var(--cond)', fontSize:14, letterSpacing:'.08em', color:'var(--ink-3)', textTransform:'uppercase' }}>Loading schedule…</div>
     </div>
   )
 }
 
 function ErrorState({ message, onRetry }) {
   return (
-    <div style={{ padding: '3rem 2rem', textAlign: 'center' }}>
-      <div style={{ fontFamily: 'var(--cond)', fontSize: 16, color: 'var(--red)', marginBottom: 12 }}>{message}</div>
-      <button onClick={onRetry} style={{ background: 'var(--orange)', color: 'white', border: 'none', fontFamily: 'var(--cond)', fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '6px 16px', borderRadius: 4, cursor: 'pointer' }}>
-        Retry
-      </button>
+    <div style={{ padding:'3rem 2rem', textAlign:'center' }}>
+      <div style={{ fontFamily:'var(--cond)', fontSize:16, color:'var(--red)', marginBottom:12 }}>{message}</div>
+      <button onClick={onRetry} style={{ background:'var(--orange)', color:'#fff', border:'none', fontFamily:'var(--cond)', fontSize:12, fontWeight:700, letterSpacing:'.1em', textTransform:'uppercase', padding:'6px 16px', borderRadius:4, cursor:'pointer' }}>Retry</button>
     </div>
   )
 }

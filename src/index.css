@@ -33,3 +33,14 @@ body {
 }
 
 button { font-family: var(--sans); cursor: pointer; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .page-wrap {
+    grid-template-columns: 1fr !important;
+    padding: 1rem !important;
+  }
+  .desktop-sidebar {
+    display: none !important;
+  }
+}
