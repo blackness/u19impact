@@ -36,30 +36,55 @@ export default function TeamSchedule({ teamEvents, oblGames, favoriteTeam }) {
 }
 
 function EventCard({ event, favoriteTeam }) {
-  const cfg     = TYPE_CONFIG[event._source] || TYPE_CONFIG.other
-  const isGame  = event._source === 'obl' || event._source === 'game' || event._source === 'tournament_game'
-  const isPrac  = event._source === 'practice'
-  const played  = event._source === 'obl' && event.hs !== null
+  const cfg    = TYPE_CONFIG[event._source] || TYPE_CONFIG.other
+  const isGame = event._source === 'obl' || event._source === 'game' || event._source === 'tournament_game'
+  const played = event._source === 'obl' && event.hs !== null
 
   const timeStr = event.start_time
     ? new Date(event.start_time).toLocaleTimeString('en-CA', { hour:'numeric', minute:'2-digit' })
     : event.time || null
-  const endStr  = event.end_time
+  const endStr = event.end_time
     ? new Date(event.end_time).toLocaleTimeString('en-CA', { hour:'numeric', minute:'2-digit' })
+    : null
+
+  // Build maps URL from address or location name
+  const mapQuery = event.address || event.location
+  const mapsUrl  = mapQuery
+    ? `https://maps.apple.com/?q=${encodeURIComponent(mapQuery)}`
     : null
 
   return (
     <div style={{ background:cfg.bg, border:`1px solid ${cfg.border}`, borderRadius:8, overflow:'hidden' }}>
-      {/* Type + time bar */}
-      <div style={{ background:cfg.color, padding:'3px 12px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        <span style={{ fontFamily:'var(--cond)', fontSize:9, fontWeight:700, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(255,255,255,0.85)' }}>
-          {event.tournament_name || cfg.label}
-          {event.is_recurring ? ' · Recurring' : ''}
+      {/* Header bar: type label left, time right */}
+      <div style={{ background:cfg.color, padding:'4px 12px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+        <span style={{ fontFamily:'var(--cond)', fontSize:9, fontWeight:700, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(255,255,255,0.8)' }}>
+          {event.tournament_name || cfg.label}{event.is_recurring ? ' · Recurring' : ''}
         </span>
         {timeStr && (
-          <span style={{ fontFamily:'var(--cond)', fontSize:12, fontWeight:600, color:'#fff' }}>
+          <span style={{ fontFamily:'var(--cond)', fontSize:12, fontWeight:600, color:'#fff', whiteSpace:'nowrap' }}>
             {timeStr}{endStr ? ` – ${endStr}` : ''}
           </span>
+        )}
+      </div>
+
+      {/* Date + location row */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, padding:'5px 12px', borderBottom:`1px solid ${cfg.border}`, background:'rgba(255,255,255,0.45)' }}>
+        <span style={{ fontFamily:'var(--cond)', fontSize:11, fontWeight:600, color:cfg.color, letterSpacing:'0.04em' }}>
+          {event.start_time
+            ? new Date(event.start_time).toLocaleDateString('en-CA', { weekday:'short', month:'short', day:'numeric' })
+            : event._date
+              ? new Date(event._date).toLocaleDateString('en-CA', { weekday:'short', month:'short', day:'numeric' })
+              : 'Date TBD'}
+        </span>
+        {event.location && (
+          mapsUrl
+            ? <a href={mapsUrl} target="_blank" rel="noopener noreferrer" style={{ fontFamily:'var(--cond)', fontSize:11, fontWeight:600, color:cfg.color, textDecoration:'none', display:'flex', alignItems:'center', gap:3, flexShrink:0 }}>
+                <svg width="11" height="11" viewBox="0 0 16 16" fill="none" style={{ flexShrink:0 }}>
+                  <path d="M8 1C5.24 1 3 3.24 3 6c0 3.75 5 9 5 9s5-5.25 5-9c0-2.76-2.24-5-5-5zm0 6.75A1.75 1.75 0 1 1 8 4.25a1.75 1.75 0 0 1 0 3.5z" fill="currentColor"/>
+                </svg>
+                {event.location}
+              </a>
+            : <span style={{ fontFamily:'var(--cond)', fontSize:11, fontWeight:600, color:cfg.color }}>{event.location}</span>
         )}
       </div>
 
@@ -100,11 +125,6 @@ function UpcomingGame({ event, favoriteTeam, cfg }) {
           </div>
         </div>
       </div>
-      {venue && (
-        <div style={{ fontSize:11, color:'var(--ink-3)', marginTop:6, paddingTop:6, borderTop:`1px solid ${cfg.border}` }}>
-          {venue}{event.address ? ` · ${event.address}` : ''}
-        </div>
-      )}
       {event.notes && (
         <div style={{ fontSize:11, color:'var(--ink-3)', fontStyle:'italic', marginTop:4 }}>{event.notes}</div>
       )}
