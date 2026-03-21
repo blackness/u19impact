@@ -1,13 +1,17 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { DIVISIONS, fetchDivision, subscribeToDivision, fetchTeamEvents, fetchRecurringEvents } from './lib/supabase'
+import { DIVISIONS, fetchDivision, subscribeToDivision, fetchTeamEvents, fetchRecurringEvents, fetchPlayers } from './lib/supabase'
 import Masthead from './components/Masthead'
 import PoolView from './components/PoolView'
 import Sidebar from './components/Sidebar'
-import LiveScoreboard, { fetchLiveGame } from './components/LiveScoreboard'
+import LiveScoreboard, { fetchLiveGame, FinalScoreCard } from './components/LiveScoreboard'
+import GameCountdown from './components/GameCountdown'
 import './index.css'
 
-const DEFAULT_DIVISION  = 'u19_men_2526'
-const LIVE_POLL_INTERVAL = 30000  // check for live games every 30 seconds
+const DEFAULT_DIVISION   = 'u19_men_2526'
+const LIVE_POLL_INTERVAL = 10000
+
+// Kingston Impact Wallace team_id — update once confirmed
+const KINGSTON_TEAM_ID = '8dfe6481-46a6-4cfb-af47-6a7db4081308'
 
 export default function App() {
   const [activeDivision, setActiveDivision] = useState(
@@ -22,6 +26,7 @@ export default function App() {
   const [loading, setLoading]       = useState(true)
   const [error, setError]           = useState(null)
   const [teamEvents, setTeamEvents] = useState([])
+  const [players, setPlayers]       = useState([])
   const [liveGame, setLiveGame]     = useState(null)
   const [dismissed, setDismissed]   = useState(false)
   const liveWsRef                   = useRef(null)
@@ -46,7 +51,6 @@ export default function App() {
     }
   }, [])
 
-  // Poll for live game
   const checkLiveGame = useCallback(async () => {
     try {
       const game = await fetchLiveGame()
@@ -54,8 +58,14 @@ export default function App() {
         setDismissed(false)
         setLiveGame(game)
         subscribeToLiveGame(game.id)
+        // Fetch players for this game's team if we don't have them yet
+        if (game.team_id && players.length === 0) {
+          const pl = await fetchPlayers(game.team_id)
+          setPlayers(pl)
+        }
       } else if (game && game.status === 'completed' && !dismissed) {
         setLiveGame(game)
+        closeLiveWs()
       } else if (!game) {
         setLiveGame(null)
         closeLiveWs()
@@ -63,7 +73,7 @@ export default function App() {
     } catch (e) {
       console.warn('Live game check failed:', e.message)
     }
-  }, [dismissed])
+  }, [dismissed, players.length])
 
   function subscribeToLiveGame(gameId) {
     closeLiveWs()
@@ -72,24 +82,14 @@ export default function App() {
     const ws = new WebSocket(wsUrl)
     ws.onopen = () => {
       ws.send(JSON.stringify({
-        topic: 'realtime:public:games',
-        event: 'phx_join',
-        payload: {
-          config: {
-            broadcast: { self: false },
-            postgres_changes: [{ event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${gameId}` }]
-          }
-        },
+        topic: 'realtime:public:games', event: 'phx_join',
+        payload: { config: { broadcast: { self: false }, postgres_changes: [{ event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${gameId}` }] } },
         ref: '1',
       }))
     }
     ws.onmessage = (e) => {
-      const msg = JSON.parse(e.data)
-      const record = msg.payload?.data?.record
-      if (record) {
-        setLiveGame(record)
-        if (record.status !== 'in-progress') closeLiveWs()
-      }
+      const record = JSON.parse(e.data)?.payload?.data?.record
+      if (record) { setLiveGame(record); if (record.status !== 'in-progress') closeLiveWs() }
     }
     ws.onclose = () => { liveWsRef.current = null }
     liveWsRef.current = ws
@@ -106,12 +106,18 @@ export default function App() {
     return () => ch.unsubscribe()
   }, [activeDivision, loadDivision])
 
-  // Check for live game on load and every 30s
   useEffect(() => {
     checkLiveGame()
     const interval = setInterval(checkLiveGame, LIVE_POLL_INTERVAL)
-    return () => { clearInterval(interval); closeLiveWs() }
+    const onVisible = () => { if (document.visibilityState === 'visible') checkLiveGame() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => { clearInterval(interval); closeLiveWs(); document.removeEventListener('visibilitychange', onVisible) }
   }, [checkLiveGame])
+
+  // Also pre-fetch players if KINGSTON_TEAM_ID is set
+  useEffect(() => {
+    if (KINGSTON_TEAM_ID) fetchPlayers(KINGSTON_TEAM_ID).then(setPlayers)
+  }, [])
 
   const switchDivision = (id) => { localStorage.setItem('obl_division', id); setActiveDivision(id) }
   const setFavorite    = (n)  => { localStorage.setItem('obl_favorite_team', n); setFavoriteTeam(n) }
@@ -122,7 +128,18 @@ export default function App() {
     ? Object.entries(pools).find(([, pd]) => pd.standings?.some(t => t.name === favoriteTeam))?.[0]
     : null
 
+  const isLive   = liveGame?.status === 'in-progress'
+  const isFinal  = liveGame?.status === 'completed'
   const showLive = liveGame && !dismissed
+
+  // OBL games for favorite team — for countdown
+  const oblGamesForFav = pools && favoritePool
+    ? (pools[favoritePool]?.weekends || []).flatMap(wk =>
+        wk.games
+          .filter(g => !wk.played && (g.home === favoriteTeam || g.away === favoriteTeam))
+          .map(g => ({ ...g, played: wk.played, _date: wk.date ? new Date(wk.date) : null }))
+      )
+    : []
 
   return (
     <div>
@@ -130,22 +147,31 @@ export default function App() {
         division={division} divisions={DIVISIONS} onSwitchDivision={switchDivision}
         pools={poolKeys} activePool={activePool} onSwitchPool={setActivePool}
         fetchedAt={fetchedAt} loading={loading} onRefresh={() => loadDivision(activeDivision)}
-        isLive={showLive}
+        isLive={isLive}
       />
 
-      <div style={{
-        maxWidth: 1120, margin: '0 auto', padding: '1.5rem',
-        display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 280px',
-        gap: '1.5rem', alignItems: 'start',
-      }} className="page-wrap">
-        <main style={{ minWidth: 0 }}>
+      <div style={{ maxWidth:1120, margin:'0 auto', padding:'1.5rem', display:'grid', gridTemplateColumns:'minmax(0,1fr) 280px', gap:'1.5rem', alignItems:'start' }} className="page-wrap">
+        <main style={{ minWidth:0 }}>
 
-          {/* Live scoreboard — shown above everything when game is active */}
-          {showLive && (
-            <LiveScoreboard
-              game={liveGame}
+          {/* Live scoreboard */}
+          {showLive && isLive && (
+            <LiveScoreboard game={liveGame} favoriteTeam={favoriteTeam} players={players} />
+          )}
+
+          {/* Compact final score */}
+          {showLive && isFinal && (
+            <FinalScoreCard
+              game={liveGame} favoriteTeam={favoriteTeam}
+              onDismiss={() => setDismissed(true)}
+            />
+          )}
+
+          {/* Countdown — only show when no live/final game */}
+          {!showLive && (
+            <GameCountdown
+              teamEvents={teamEvents}
+              oblGames={oblGamesForFav}
               favoriteTeam={favoriteTeam}
-              onDismiss={liveGame?.status === 'completed' ? () => setDismissed(true) : null}
             />
           )}
 
