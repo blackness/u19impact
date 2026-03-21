@@ -26,7 +26,7 @@ export default function PoolView({ poolData, poolKey, favoriteTeam, teamEvents =
   const oblGamesForFav = weekends.flatMap(wk =>
     wk.games
       .filter(g => !wk.played && (g.home === favoriteTeam || g.away === favoriteTeam))
-      .map(g => ({ ...g, played: wk.played, _date: wk.date ? new Date(wk.date) : null }))
+      .map(g => ({ ...g, played: wk.played, _date: wk.date ? new Date(wk.date) : null, location: wk.location, address: wk.address }))
   )
 
   // Sort standings by BP then wins

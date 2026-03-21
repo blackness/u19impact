@@ -48,10 +48,9 @@ function EventCard({ event, favoriteTeam }) {
     : null
 
   // Build maps URL from address or location name
-  const mapQuery = event.address || event.location
-  const mapsUrl  = mapQuery
-    ? `https://maps.apple.com/?q=${encodeURIComponent(mapQuery)}`
-    : null
+  const mapQuery   = event.address || event.location
+  const mapsUrl    = mapQuery ? `https://maps.apple.com/?q=${encodeURIComponent(mapQuery)}` : null
+  const locationDisplay = [event.location, event.address].filter(Boolean).join(' · ')
 
   return (
     <div style={{ background:cfg.bg, border:`1px solid ${cfg.border}`, borderRadius:8, overflow:'hidden' }}>
@@ -78,13 +77,13 @@ function EventCard({ event, favoriteTeam }) {
         </span>
         {event.location && (
           mapsUrl
-            ? <a href={mapsUrl} target="_blank" rel="noopener noreferrer" style={{ fontFamily:'var(--cond)', fontSize:11, fontWeight:600, color:cfg.color, textDecoration:'none', display:'flex', alignItems:'center', gap:3, flexShrink:0 }}>
+            ? <a href={mapsUrl} target="_blank" rel="noopener noreferrer" style={{ fontFamily:'var(--cond)', fontSize:11, fontWeight:600, color:cfg.color, textDecoration:'none', display:'flex', alignItems:'center', gap:3, flexShrink:0, maxWidth:'60%', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                 <svg width="11" height="11" viewBox="0 0 16 16" fill="none" style={{ flexShrink:0 }}>
                   <path d="M8 1C5.24 1 3 3.24 3 6c0 3.75 5 9 5 9s5-5.25 5-9c0-2.76-2.24-5-5-5zm0 6.75A1.75 1.75 0 1 1 8 4.25a1.75 1.75 0 0 1 0 3.5z" fill="currentColor"/>
                 </svg>
-                {event.location}
+                {locationDisplay}
               </a>
-            : <span style={{ fontFamily:'var(--cond)', fontSize:11, fontWeight:600, color:cfg.color }}>{event.location}</span>
+            : <span style={{ fontFamily:'var(--cond)', fontSize:11, fontWeight:600, color:cfg.color }}>{locationDisplay}</span>
         )}
       </div>
 

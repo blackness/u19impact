@@ -3,7 +3,7 @@ import { useState } from 'react'
 export default function Masthead({
   division, divisions, onSwitchDivision,
   pools, activePool, onSwitchPool,
-  fetchedAt, loading, onRefresh,
+  fetchedAt, loading, onRefresh, isLive = false,
 }) {
   const [pickerOpen, setPickerOpen] = useState(false)
   const boys  = divisions.filter(d => d.gender === 'Boys')
@@ -64,6 +64,14 @@ export default function Masthead({
       <div style={{ background: 'var(--ink)', color: 'var(--white)', padding: '0.35rem 1rem', width: '100%' }}>
         <div style={{ maxWidth: 1120, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontFamily: 'var(--cond)', fontSize: 11, letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 6 }}>
+            {isLive && (
+              <>
+                <span style={{ display:'inline-block', width:7, height:7, borderRadius:'50%', background:'#ef4444', animation:'liveblink 1.2s ease-in-out infinite' }} />
+                <style>{`@keyframes liveblink{0%,100%{opacity:1}50%{opacity:.3}}`}</style>
+                <span style={{ color:'#ef4444', fontWeight:700, letterSpacing:'0.1em', fontSize:10 }}>LIVE</span>
+                <span style={{ color:'rgba(255,255,255,0.3)' }}>·</span>
+              </>
+            )}
             <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: loading ? '#facc15' : '#4ade80', animation: 'blink 2.5s ease-in-out infinite' }} />
             <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}`}</style>
             {loading ? 'Loading…' : timeStr ? `Updated ${timeStr}` : 'Ready'}
