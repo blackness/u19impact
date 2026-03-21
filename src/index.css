@@ -1,0 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;500;600;700;800&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink:      #0f0f0f;
+  --ink-2:    #3a3a3a;
+  --ink-3:    #777;
+  --ink-4:    #b0b0b0;
+  --rule:     #e6e6e2;
+  --surface:  #f7f7f5;
+  --white:    #fff;
+  --orange:   #e8500a;
+  --or-light: #fff2ec;
+  --or-mid:   #ffd5bc;
+  --green:    #1a6e3c;
+  --green-bg: #eaf4ee;
+  --red:      #b83030;
+  --red-bg:   #fdf0ee;
+  --sans:     'Instrument Sans', sans-serif;
+  --cond:     'Barlow Condensed', sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--sans);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font-family: var(--sans); cursor: pointer; }
