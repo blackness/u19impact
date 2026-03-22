@@ -12,7 +12,7 @@ export async function fetchLiveGame() {
   let url = `${SUPABASE_URL}/rest/v1/games` +
     `?scheduled_date=gte.${startOfDay.toISOString()}` +
     `&scheduled_date=lte.${endOfDay.toISOString()}` +
-    `&status=in.in-progress,completed` +
+    `&status=in.(in-progress,completed)` +
     `&select=id,status,home_team,home_score,away_score,period,time_remaining,tracker_active,timer_running,recent_plays,stats,game_settings,team_id` +
     `&order=updated_at.desc&limit=1`
 
