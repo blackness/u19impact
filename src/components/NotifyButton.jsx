@@ -39,23 +39,27 @@ export default function NotifyButton() {
     setState('requesting')
     setError('')
     try {
+      setError('Step 1: Registering service worker...')
       const reg = await navigator.serviceWorker.register('/sw.js')
       await navigator.serviceWorker.ready
 
+      setError('Step 2: Requesting permission...')
       const permission = await Notification.requestPermission()
       if (permission !== 'granted') { setState('denied'); return }
 
+      setError('Step 3: Subscribing to push...')
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly:      true,
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
       })
 
       const { endpoint, keys } = sub.toJSON()
+      setError('Step 4: Saving to database...')
 
-      await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions`, {
+      const saveRes = await fetch(`${SUPABASE_URL}/rest/v1/push_subscriptions`, {
         method: 'POST',
         headers: {
-          'apikey':       SUPABASE_ANON,
+          'apikey':        SUPABASE_ANON,
           'Authorization': `Bearer ${SUPABASE_ANON}`,
           'Content-Type':  'application/json',
           'Prefer':        'resolution=merge-duplicates',
@@ -68,16 +72,20 @@ export default function NotifyButton() {
         }),
       })
 
+      const saveText = await saveRes.text()
+      if (!saveRes.ok) {
+        setError(`Save failed ${saveRes.status}: ${saveText}`)
+        setState('idle')
+        return
+      }
+
+      setError('')
       setState('subscribed')
-   } catch (e) {
-  console.error('Subscribe error:', e)
-  setError(JSON.stringify({
-    message: e.message,
-    vapid: VAPID_PUBLIC_KEY?.slice(0,20),
-    permission: Notification.permission,
-  }))
-  setState('idle')
-}
+    } catch (e) {
+      console.error('Subscribe error:', e)
+      setError(e.message || 'Unknown error')
+      setState('idle')
+    }
   }
 
   const updatePrefs = async (newPrefs) => {
