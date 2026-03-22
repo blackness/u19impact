@@ -32,8 +32,11 @@ export default function NotifyButton() {
     }
   }, [])
 
+  const [error, setError] = useState('')
+
   const subscribe = async () => {
     setState('requesting')
+    setError('')
     try {
       const reg = await navigator.serviceWorker.register('/sw.js')
       await navigator.serviceWorker.ready
@@ -67,6 +70,7 @@ export default function NotifyButton() {
       setState('subscribed')
     } catch (e) {
       console.error('Subscribe error:', e)
+      setError(e.message || 'Unknown error')
       setState('idle')
     }
   }
@@ -128,21 +132,28 @@ export default function NotifyButton() {
             </div>
           )}
         </div>
-      ) : state === 'denied' ? (
+    ) : state === 'denied' ? (
         <div style={{ padding:'0.55rem 1rem', fontFamily:'var(--cond)', fontSize:12, color:'var(--ink-4)' }}>
           Notifications blocked — enable in browser settings
         </div>
       ) : (
-        <button
-          onClick={subscribe}
-          disabled={state === 'requesting'}
-          style={{ display:'flex', alignItems:'center', gap:8, width:'100%', background:'none', border:'none', padding:'0.55rem 1rem', cursor: state === 'requesting' ? 'wait' : 'pointer', textAlign:'left' }}
-        >
-          <span style={{ fontSize:14 }}>🔔</span>
-          <span style={{ fontFamily:'var(--cond)', fontSize:13, fontWeight:600, color:'var(--orange)' }}>
-            {state === 'requesting' ? 'Setting up…' : 'Get game notifications'}
-          </span>
-        </button>
+        <div>
+          <button
+            onClick={subscribe}
+            disabled={state === 'requesting'}
+            style={{ display:'flex', alignItems:'center', gap:8, width:'100%', background:'none', border:'none', padding:'0.55rem 1rem', cursor: state === 'requesting' ? 'wait' : 'pointer', textAlign:'left' }}
+          >
+            <span style={{ fontSize:14 }}>🔔</span>
+            <span style={{ fontFamily:'var(--cond)', fontSize:13, fontWeight:600, color:'var(--orange)' }}>
+              {state === 'requesting' ? 'Setting up…' : 'Get game notifications'}
+            </span>
+          </button>
+          {error && (
+            <div style={{ padding:'0 1rem 0.5rem', fontSize:11, color:'var(--red)', fontFamily:'var(--cond)' }}>
+              {error}
+            </div>
+          )}
+        </div>
       )}
     </div>
   )
