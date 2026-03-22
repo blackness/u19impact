@@ -69,11 +69,15 @@ export default function NotifyButton() {
       })
 
       setState('subscribed')
-    } catch (e) {
-      console.error('Subscribe error:', e)
-      setError(e.message || 'Unknown error')
-      setState('idle')
-    }
+   } catch (e) {
+  console.error('Subscribe error:', e)
+  setError(JSON.stringify({
+    message: e.message,
+    vapid: VAPID_PUBLIC_KEY?.slice(0,20),
+    permission: Notification.permission,
+  }))
+  setState('idle')
+}
   }
 
   const updatePrefs = async (newPrefs) => {
