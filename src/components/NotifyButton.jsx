@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY
+// VAPID public key — safe to hardcode, this is not a secret
+const VAPID_PUBLIC_KEY = 'BEQzX2LX3B2fi6lrWmAit9eczZoOTehmH-6nCHmZa7RdwKMYstsonTXmRcUQv-lRySjKawCR301IOD-dJgAY5hk'
 const SUPABASE_URL     = import.meta.env.VITE_SUPABASE_URL
 const SUPABASE_ANON    = import.meta.env.VITE_SUPABASE_ANON
 
