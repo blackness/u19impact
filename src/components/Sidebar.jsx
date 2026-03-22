@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Roster from './Roster'
 
 export default function Sidebar({
   pools, poolKeys, activePool, onSwitchPool,
@@ -70,6 +71,12 @@ export default function Sidebar({
           </div>
         </SbCard>
       )}
+
+      {/* Roster */}
+      <SbCard>
+        <SbHead>Roster</SbHead>
+        <Roster inline={true} />
+      </SbCard>
 
       {/* My team picker */}
       <SbCard>

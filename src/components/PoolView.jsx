@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import GameCard, { Pill } from './GameCard'
 import TeamSchedule from './TeamSchedule'
+import Roster from './Roster'
 
 export default function PoolView({ poolData, poolKey, favoriteTeam, teamEvents = [], allPools }) {
   const [expandedTeam, setExpandedTeam] = useState(null)
+  const [mobileTab, setMobileTab] = useState('schedule') // 'schedule' | 'roster'
 
   if (!poolData) return (
     <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--ink-4)', fontFamily: 'var(--cond)', fontSize: 15, letterSpacing: '0.05em' }}>
@@ -37,21 +39,50 @@ export default function PoolView({ poolData, poolKey, favoriteTeam, teamEvents =
 
   return (
     <div>
-      {/* ── TEAM SCHEDULE (fav pool) or NEXT OBA GAMES ── */}
-      {isFavPool ? (
-        <>
-          <SectionLabel>Team schedule</SectionLabel>
-          <div style={{ background: 'var(--white)', border: '1px solid var(--rule)', borderRadius: 6, overflow: 'hidden', marginBottom: '2rem', padding: '0.75rem' }}>
-            <TeamSchedule
-              teamEvents={teamEvents}
-              oblGames={oblGamesForFav}
-              favoriteTeam={favoriteTeam}
-            />
-          </div>
-        </>
-      ) : (
-        <NextGamesBlock weekend={nextWeekend} favoriteTeam={favoriteTeam} />
+      {/* ── MOBILE TAB BAR (hidden on desktop via CSS) ── */}
+      {isFavPool && (
+        <div className="mobile-tabs" style={{ display: 'flex', marginBottom: '1.25rem', border: '1px solid var(--rule)', borderRadius: 8, overflow: 'hidden' }}>
+          {[
+            { key: 'schedule', label: 'Schedule' },
+            { key: 'roster',   label: 'Roster' },
+          ].map(t => (
+            <button key={t.key} onClick={() => setMobileTab(t.key)} style={{
+              flex: 1, padding: '9px', border: 'none',
+              background: mobileTab === t.key ? 'var(--orange)' : 'var(--white)',
+              color: mobileTab === t.key ? '#fff' : 'var(--ink-3)',
+              fontFamily: 'var(--cond)', fontSize: 12, fontWeight: 700,
+              letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer',
+              borderRight: t.key === 'schedule' ? '1px solid var(--rule)' : 'none',
+            }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
       )}
+
+      {/* ── ROSTER TAB (mobile only) ── */}
+      {isFavPool && mobileTab === 'roster' && (
+        <Roster inline={false} />
+      )}
+
+      {/* ── SCHEDULE TAB or non-fav pool ── */}
+      {(!isFavPool || mobileTab === 'schedule') && (
+        <>
+          {/* ── TEAM SCHEDULE (fav pool) or NEXT OBA GAMES ── */}
+          {isFavPool ? (
+            <>
+              <SectionLabel>Team schedule</SectionLabel>
+              <div style={{ background: 'var(--white)', border: '1px solid var(--rule)', borderRadius: 6, overflow: 'hidden', marginBottom: '2rem', padding: '0.75rem' }}>
+                <TeamSchedule
+                  teamEvents={teamEvents}
+                  oblGames={oblGamesForFav}
+                  favoriteTeam={favoriteTeam}
+                />
+              </div>
+            </>
+          ) : (
+            <NextGamesBlock weekend={nextWeekend} favoriteTeam={favoriteTeam} />
+          )}
 
       {/* ── STANDINGS ── */}
       <SectionLabel>Standings — Pool {poolKey}</SectionLabel>
@@ -154,6 +185,8 @@ export default function PoolView({ poolData, poolKey, favoriteTeam, teamEvents =
           {playedWeekends.map(wk => (
             <WeekendBlock key={wk.num} weekend={wk} favoriteTeam={favoriteTeam} />
           ))}
+        </>
+      )}
         </>
       )}
     </div>

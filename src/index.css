@@ -44,3 +44,13 @@ button { font-family: var(--sans); cursor: pointer; }
     display: none !important;
   }
 }
+
+/* Mobile tabs — only show on mobile */
+.mobile-tabs {
+  display: none !important;
+}
+@media (max-width: 768px) {
+  .mobile-tabs {
+    display: flex !important;
+  }
+}
