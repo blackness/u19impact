@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Roster from './Roster'
+import NotifyButton from './NotifyButton'
 
 export default function Sidebar({
   pools, poolKeys, activePool, onSwitchPool,
@@ -71,6 +72,12 @@ export default function Sidebar({
           </div>
         </SbCard>
       )}
+
+      {/* Notifications */}
+      <SbCard>
+        <SbHead>Game notifications</SbHead>
+        <NotifyButton />
+      </SbCard>
 
       {/* Roster */}
       <SbCard>
