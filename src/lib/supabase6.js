@@ -129,3 +129,16 @@ function expandRecurring(patterns) {
   }
   return instances
 }
+
+// Fetch players for a team
+export async function fetchPlayers(teamId) {
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/players?team_id=eq.${teamId}&active=eq.true&select=id,name,number,position&order=number.asc`
+  const res = await fetch(url, {
+    headers: {
+      'apikey': import.meta.env.VITE_SUPABASE_ANON,
+      'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON}`,
+    }
+  })
+  if (!res.ok) return []
+  return res.json()
+}

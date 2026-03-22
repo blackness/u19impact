@@ -142,3 +142,27 @@ export async function fetchPlayers(teamId) {
   if (!res.ok) return []
   return res.json()
 }
+
+// Fetch all completed games from today for the results banner
+export async function fetchTodaysResults() {
+  const today      = new Date()
+  const startOfDay = new Date(today); startOfDay.setHours(0,0,0,0)
+  const endOfDay   = new Date(today); endOfDay.setHours(23,59,59,999)
+
+  // Games with scheduled_date today
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/games` +
+    `?status=eq.completed` +
+    `&updated_at=gte.${startOfDay.toISOString()}` +
+    `&updated_at=lte.${endOfDay.toISOString()}` +
+    `&select=id,home_team,home_score,away_score,game_settings` +
+    `&order=updated_at.asc`
+
+  const res = await fetch(url, {
+    headers: {
+      'apikey': import.meta.env.VITE_SUPABASE_ANON,
+      'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON}`,
+    }
+  })
+  if (!res.ok) return []
+  return res.json()
+}
