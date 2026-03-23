@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Roster from './Roster'
 import NotifyButton from './NotifyButton'
+import Results from './Results'
 
 export default function Sidebar({
   pools, poolKeys, activePool, onSwitchPool,
@@ -13,6 +14,9 @@ export default function Sidebar({
   const kSt    = poolA?.standings?.find(t => t.name === favoriteTeam)
   const sorted = kSt ? [...(poolA?.standings || [])].sort((a,b) => b.bp-a.bp||b.wins-a.wins) : []
   const kRank  = kSt ? sorted.findIndex(t => t.name === favoriteTeam) + 1 : 0
+
+  const oblGamesForFav = (poolA?.weekends || [])
+    .flatMap(wk => wk.games.filter(g => g.hs !== null && (g.home === favoriteTeam || g.away === favoriteTeam)))
 
   const upcomingPractices = teamEvents
     .filter(e => e.type === 'practice' && new Date(e.start_time) >= new Date())
@@ -77,6 +81,15 @@ export default function Sidebar({
       <SbCard>
         <SbHead>Game notifications</SbHead>
         <NotifyButton />
+      </SbCard>
+
+      {/* Results */}
+      <SbCard>
+        <SbHead>
+          <span>Recent Results</span>
+          <a href="/results" style={{ fontFamily: 'var(--cond)', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--orange)', textDecoration: 'none' }}>All →</a>
+        </SbHead>
+        <Results limit={5} showLink={false} favoriteTeam={favoriteTeam} oblGames={oblGamesForFav} />
       </SbCard>
 
       {/* Roster */}

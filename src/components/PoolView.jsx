@@ -2,10 +2,11 @@ import { useState } from 'react'
 import GameCard, { Pill } from './GameCard'
 import TeamSchedule from './TeamSchedule'
 import Roster from './Roster'
+import Results from './Results'
 
 export default function PoolView({ poolData, poolKey, favoriteTeam, teamEvents = [], allPools }) {
   const [expandedTeam, setExpandedTeam] = useState(null)
-  const [mobileTab, setMobileTab] = useState('schedule') // 'schedule' | 'roster'
+  const [mobileTab, setMobileTab] = useState('schedule') // 'schedule' | 'roster' | 'results'
 
   if (!poolData) return (
     <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--ink-4)', fontFamily: 'var(--cond)', fontSize: 15, letterSpacing: '0.05em' }}>
@@ -45,6 +46,7 @@ export default function PoolView({ poolData, poolKey, favoriteTeam, teamEvents =
           {[
             { key: 'schedule', label: 'Schedule' },
             { key: 'roster',   label: 'Roster' },
+            { key: 'results',  label: 'Results' },
           ].map(t => (
             <button key={t.key} onClick={() => setMobileTab(t.key)} style={{
               flex: 1, padding: '9px', border: 'none',
@@ -63,6 +65,21 @@ export default function PoolView({ poolData, poolKey, favoriteTeam, teamEvents =
       {/* ── ROSTER TAB (mobile only) ── */}
       {isFavPool && mobileTab === 'roster' && (
         <Roster inline={false} />
+      )}
+
+      {/* ── RESULTS TAB (mobile only) ── */}
+      {isFavPool && mobileTab === 'results' && (
+        <div style={{ background: 'var(--white)', border: '1px solid var(--rule)', borderRadius: 6, overflow: 'hidden', marginBottom: '2rem' }}>
+          <div style={{ padding: '0.6rem 1rem', borderBottom: '1px solid var(--rule)', background: 'var(--ink)' }}>
+            <div style={{ fontFamily: 'var(--cond)', fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)' }}>
+              Kingston Impact · U19
+            </div>
+            <div style={{ fontFamily: 'var(--cond)', fontSize: 16, fontWeight: 800, color: '#fff', marginTop: 1 }}>
+              All Results
+            </div>
+          </div>
+          <Results favoriteTeam={favoriteTeam} oblGames={weekends.flatMap(wk => wk.games.filter(g => g.hs !== null && (g.home === favoriteTeam || g.away === favoriteTeam)))} />
+        </div>
       )}
 
       {/* ── SCHEDULE TAB or non-fav pool ── */}
@@ -161,8 +178,8 @@ export default function PoolView({ poolData, poolKey, favoriteTeam, teamEvents =
                               </span>
                               <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                 {g.score
-                                  ? <><span style={{ fontFamily: 'var(--cond)', fontSize: 15, fontWeight: 700, color: g.result === 'W' ? 'var(--green)' : 'var(--red)' }}>{g.score}</span><Pill result={g.result} /></>
-                                  : <><span style={{ fontSize: 11, color: 'var(--ink-4)' }}>Upcoming</span><Pill result="U" /></>
+                                  ? <><span key="score" style={{ fontFamily: 'var(--cond)', fontSize: 15, fontWeight: 700, color: g.result === 'W' ? 'var(--green)' : 'var(--red)' }}>{g.score}</span><Pill key="pill" result={g.result} /></>
+                                  : <><span key="upcoming" style={{ fontSize: 11, color: 'var(--ink-4)' }}>Upcoming</span><Pill key="pill" result="U" /></>
                                 }
                               </span>
                             </div>
