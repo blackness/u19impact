@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 
 // VAPID public key — safe to hardcode, this is not a secret
 const VAPID_PUBLIC_KEY = 'BEQzX2LX3B2fi6lrWmAit9eczZoOTehmH-6nCHmZa7RdwKMYstsonTXmRcUQv-lRySjKawCR301IOD-dJgAY5hk'
-const SUPABASE_URL     = import.meta.env.VITE_SUPABASE_URL
-const SUPABASE_ANON    = import.meta.env.VITE_SUPABASE_ANON
+const SUPABASE_URL  = 'https://sclhzmgdafotyiynrjwr.supabase.co'
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjbGh6bWdkYWZvdHlpeW5yandyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExNDIyMzMsImV4cCI6MjA4NjcxODIzM30.lNrQF2Bpe7f2dno0rZ9XzqGSzyFi3vwKkLny8VPnBH8'
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4)
