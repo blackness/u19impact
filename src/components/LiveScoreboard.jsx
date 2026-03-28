@@ -13,7 +13,7 @@ export async function fetchLiveGame() {
     `?scheduled_date=gte.${startOfDay.toISOString()}` +
     `&scheduled_date=lte.${endOfDay.toISOString()}` +
     `&status=in.(in-progress,completed)` +
-    `&select=id,status,home_team,home_score,away_score,period,time_remaining,tracker_active,timer_running,recent_plays,stats,game_settings,team_id` +
+    `&select=id,status,home_team,home_score,away_score,period,time_remaining,tracker_active,timer_running,recent_plays,stats,active_players,game_settings,team_id` +
     `&order=updated_at.desc&limit=1`
 
   let res  = await fetch(url, { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } })
@@ -25,7 +25,7 @@ export async function fetchLiveGame() {
   url = `${SUPABASE_URL}/rest/v1/games` +
     `?status=eq.in-progress` +
     `&updated_at=gte.${twelveHoursAgo.toISOString()}` +
-    `&select=id,status,home_team,home_score,away_score,period,time_remaining,tracker_active,timer_running,recent_plays,stats,game_settings,team_id` +
+    `&select=id,status,home_team,home_score,away_score,period,time_remaining,tracker_active,timer_running,recent_plays,stats,active_players,game_settings,team_id` +
     `&order=updated_at.desc&limit=1`
 
   res  = await fetch(url, { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` } })
@@ -97,25 +97,50 @@ export default function LiveScoreboard({ game, favoriteTeam, players = [], onDis
   const losing     = ourScore < theirScore
   const plays      = (data.recent_plays || []).slice(0, 5)
 
-  // Build player stat lines — positive stats only, sorted by pts desc
-  const statsMap = data.stats || {}
-  const playerLines = Object.entries(statsMap)
-    .map(([uuid, s]) => {
-      const p   = players.find(pl => pl.id === uuid)
-      const pts = s.pts  || 0
-      const reb = (s.dreb || 0) + (s.oreb || 0)
-      const ast = s.ast  || 0
-      const stl = s.stl  || 0
-      const blk = s.blk  || 0
-      const hasStats = pts > 0 || reb > 0 || ast > 0 || stl > 0 || blk > 0
-      if (!hasStats) return null
-      return { uuid, name: p?.name || 'Player', number: p?.number || '—', pts, reb, ast, stl, blk }
-    })
-    .filter(Boolean)
-    .sort((a, b) => b.pts - a.pts)
+  // Build full roster box score — all players, on-floor highlighted
+  const statsMap     = data.stats || {}
+  const activeUuids  = new Set(data.active_players || [])
 
-  // Team totals
-  const totals = playerLines.reduce((acc, p) => {
+  // Merge roster players with stats, fall back to stats _name/_number if not in roster
+  const allPlayerLines = (() => {
+    const seen = new Set()
+    const lines = []
+
+    // Start with roster players so order is by number
+    for (const p of players) {
+      seen.add(p.id)
+      const s      = statsMap[p.id] || {}
+      const pts    = s.pts  || 0
+      const reb    = (s.dreb || 0) + (s.oreb || 0)
+      const ast    = s.ast  || 0
+      const stl    = s.stl  || 0
+      const blk    = s.blk  || 0
+      const onFloor = activeUuids.has(p.id)
+      lines.push({ uuid: p.id, name: p.name, number: p.number || '—', pts, reb, ast, stl, blk, onFloor, hasStats: pts+reb+ast+stl+blk > 0 })
+    }
+
+    // Add any stats-only players not in roster
+    for (const [uuid, s] of Object.entries(statsMap)) {
+      if (seen.has(uuid)) continue
+      const pts    = s.pts  || 0
+      const reb    = (s.dreb || 0) + (s.oreb || 0)
+      const ast    = s.ast  || 0
+      const stl    = s.stl  || 0
+      const blk    = s.blk  || 0
+      const onFloor = activeUuids.has(uuid)
+      lines.push({ uuid, name: s._name || 'Player', number: s._number || '—', pts, reb, ast, stl, blk, onFloor, hasStats: pts+reb+ast+stl+blk > 0 })
+    }
+
+    // Sort: on-floor first (by number), then bench with stats, then bench no stats
+    return lines.sort((a, b) => {
+      if (a.onFloor !== b.onFloor) return a.onFloor ? -1 : 1
+      if (a.hasStats !== b.hasStats) return a.hasStats ? -1 : 1
+      return (parseInt(a.number) || 99) - (parseInt(b.number) || 99)
+    })
+  })()
+
+  // Team totals from all players
+  const totals = allPlayerLines.reduce((acc, p) => {
     acc.pts += p.pts; acc.reb += p.reb; acc.ast += p.ast
     acc.stl += p.stl; acc.blk += p.blk; return acc
   }, { pts:0, reb:0, ast:0, stl:0, blk:0 })
@@ -171,22 +196,57 @@ export default function LiveScoreboard({ game, favoriteTeam, players = [], onDis
         ))}
       </div>
 
-      {/* Player stat lines — positive stats only */}
-      {playerLines.length > 0 && (
-        <div style={{ padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,0.08)' }}>
-          {playerLines.map((p, i) => (
-            <div key={p.uuid} style={{ display:'flex', alignItems:'center', gap:0, padding:'3px 14px', background: i===0?'rgba(255,255,255,0.04)':'transparent' }}>
-              <span style={{ fontFamily:'var(--cond)', fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.35)', minWidth:24 }}>#{p.number}</span>
-              <span style={{ fontFamily:'var(--cond)', fontSize:13, fontWeight:600, color:'#fff', flex:1 }}>{p.name}</span>
-              <div style={{ display:'flex', gap:10 }}>
-                {p.pts  > 0 && <StatPill label="PTS" val={p.pts}  hi={p.pts >= 10} />}
-                {p.reb  > 0 && <StatPill label="REB" val={p.reb} />}
-                {p.ast  > 0 && <StatPill label="AST" val={p.ast} />}
-                {p.stl  > 0 && <StatPill label="STL" val={p.stl} />}
-                {p.blk  > 0 && <StatPill label="BLK" val={p.blk} />}
+      {/* Box score — full roster */}
+      {allPlayerLines.length > 0 && (
+        <div style={{ borderBottom:'1px solid rgba(255,255,255,0.08)' }}>
+          {/* Header row */}
+          <div style={{ display:'grid', gridTemplateColumns:'28px 1fr 36px 36px 36px 36px 36px', gap:0, padding:'4px 14px', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
+            <div />
+            <div style={{ fontFamily:'var(--cond)', fontSize:9, fontWeight:700, letterSpacing:'0.1em', color:'rgba(255,255,255,0.25)', textTransform:'uppercase' }}>Player</div>
+            {['PTS','REB','AST','STL','BLK'].map(h => (
+              <div key={h} style={{ fontFamily:'var(--cond)', fontSize:9, fontWeight:700, letterSpacing:'0.08em', color:'rgba(255,255,255,0.25)', textTransform:'uppercase', textAlign:'center' }}>{h}</div>
+            ))}
+          </div>
+
+          {allPlayerLines.map((p) => {
+            const on = p.onFloor
+            return (
+              <div key={p.uuid} style={{
+                display:'grid', gridTemplateColumns:'28px 1fr 36px 36px 36px 36px 36px',
+                gap:0, padding:'5px 14px',
+                background: on ? 'rgba(232,80,10,0.12)' : 'transparent',
+                borderBottom:'1px solid rgba(255,255,255,0.04)',
+              }}>
+                {/* Number */}
+                <div style={{ fontFamily:'var(--cond)', fontSize:11, fontWeight:700, color: on ? 'var(--orange)' : 'rgba(255,255,255,0.25)', alignSelf:'center' }}>
+                  {p.number}
+                </div>
+
+                {/* Name + ON badge */}
+                <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                  <span style={{ fontFamily:'var(--cond)', fontSize:13, fontWeight: on ? 700 : 500, color: on ? '#fff' : 'rgba(255,255,255,0.45)' }}>
+                    {p.name}
+                  </span>
+                  {on && (
+                    <span style={{ fontFamily:'var(--cond)', fontSize:8, fontWeight:800, letterSpacing:'0.08em', background:'var(--orange)', color:'#fff', padding:'1px 4px', borderRadius:2 }}>
+                      ON
+                    </span>
+                  )}
+                </div>
+
+                {/* Stats */}
+                {[p.pts, p.reb, p.ast, p.stl, p.blk].map((val, i) => (
+                  <div key={i} style={{
+                    fontFamily:'var(--cond)', fontSize:13, fontWeight: val > 0 ? 700 : 400,
+                    color: val >= 10 ? 'var(--orange)' : val > 0 ? (on ? '#fff' : 'rgba(255,255,255,0.7)') : 'rgba(255,255,255,0.15)',
+                    textAlign:'center', alignSelf:'center',
+                  }}>
+                    {val > 0 ? val : '—'}
+                  </div>
+                ))}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
