@@ -6,6 +6,7 @@ import Sidebar from './components/Sidebar'
 import LiveScoreboard, { fetchLiveGame, FinalScoreCard } from './components/LiveScoreboard'
 import GameCountdown from './components/GameCountdown'
 import './index.css'
+import { Analytics } from "@vercel/analytics/next"
 
 const DEFAULT_DIVISION   = 'u19_men_2526'
 const LIVE_POLL_INTERVAL = 10000
