@@ -32,6 +32,12 @@ export default function PoolView({ poolData, poolKey, favoriteTeam, teamEvents =
       .map(g => ({ ...g, played: wk.played, _date: wk.date ? new Date(wk.date) : null, location: wk.location, address: wk.address }))
   )
 
+  // Check if there are any future games to show in schedule
+  const now = new Date()
+  const hasUpcomingTeamEvents = teamEvents.some(e => e.type !== 'practice' && new Date(e.start_time) >= now)
+  const hasUpcomingOblGames   = oblGamesForFav.some(g => g._date && g._date > now)
+  const hasUpcomingGames      = hasUpcomingTeamEvents || hasUpcomingOblGames
+
   // Sort standings by BP then wins
   const sorted = [...standings].sort((a, b) => b.bp - a.bp || b.wins - a.wins || a.losses - b.losses)
 
@@ -85,8 +91,8 @@ export default function PoolView({ poolData, poolKey, favoriteTeam, teamEvents =
       {/* ── SCHEDULE TAB or non-fav pool ── */}
       {(!isFavPool || mobileTab === 'schedule') && (
         <>
-          {/* ── TEAM SCHEDULE (fav pool) or NEXT OBA GAMES ── */}
-          {isFavPool ? (
+          {/* ── TEAM SCHEDULE (fav pool) — only when future games exist ── */}
+          {isFavPool && hasUpcomingGames && (
             <>
               <SectionLabel>Team schedule</SectionLabel>
               <div style={{ background: 'var(--white)', border: '1px solid var(--rule)', borderRadius: 6, overflow: 'hidden', marginBottom: '2rem', padding: '0.75rem' }}>
@@ -97,7 +103,10 @@ export default function PoolView({ poolData, poolKey, favoriteTeam, teamEvents =
                 />
               </div>
             </>
-          ) : (
+          )}
+
+          {/* ── NEXT OBA GAMES (non-fav pool) ── */}
+          {!isFavPool && (
             <NextGamesBlock weekend={nextWeekend} favoriteTeam={favoriteTeam} />
           )}
 

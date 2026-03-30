@@ -192,8 +192,9 @@ function mergeAndSort(teamEvents, oblGames, favoriteTeam) {
   }
 
   for (const g of oblGames) {
-    if (!g.played && (g.home === favoriteTeam || g.away === favoriteTeam) && g._date) {
-      items.push({ ...g, _source:'obl', _sortKey: g._date.getTime() })
+    const gameDate = g._date ? new Date(g._date) : null
+    if (!g.played && (g.home === favoriteTeam || g.away === favoriteTeam) && gameDate && gameDate > now) {
+      items.push({ ...g, _source:'obl', _sortKey: gameDate.getTime() })
     }
   }
 
